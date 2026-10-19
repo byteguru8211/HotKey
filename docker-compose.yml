@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: hero-typing-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hero_typing
+      POSTGRES_USER: hero
+      POSTGRES_PASSWORD: hero_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - hero_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hero -d hero_typing"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  hero_pgdata:

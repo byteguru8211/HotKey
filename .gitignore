@@ -1,0 +1,28 @@
+# Зависимости
+node_modules/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Сборка фронтенда
+frontend/dist/
+*.log
+
+# Секреты и локальные данные
+backend/.env
+backend/instance/
+.pgdata/
+.acl-recovery/
+.screens/
+
+# ОС и редакторы
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.ruff_cache/
+.pytest_cache/
+
+# Материалы задания
+Киберрывок_2026_Отборочный_этап.pdf
