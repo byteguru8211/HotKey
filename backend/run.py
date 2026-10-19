@@ -13,7 +13,7 @@ def main() -> None:
     host = os.getenv("HOST", "127.0.0.1")
     port = int(os.getenv("PORT", "5000"))
     debug = os.getenv("FLASK_DEBUG", "0") in {"1", "true", "True"}
-    banner = f"Печать героя → http://{host}:{port}"
+    banner = f"Печать героя -> http://{host}:{port}"
 
     if debug:
         app.run(host=host, port=port, debug=True)
@@ -21,7 +21,7 @@ def main() -> None:
 
     from waitress import serve
 
-    print(banner)
+    print(banner, flush=True)
     serve(app, host=host, port=port, threads=8)
 
 
