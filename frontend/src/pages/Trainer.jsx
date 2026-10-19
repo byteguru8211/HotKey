@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
   Award,
@@ -103,10 +104,15 @@ export default function Trainer() {
   const [showKeyboard, setShowKeyboard] = useState(() => window.innerWidth > 1024);
   const [soundOn, setSoundOn] = useState(user?.sound_enabled ?? true);
   const [shake, setShake] = useState(false);
+  const [typingAreaInView, setTypingAreaInView] = useState(true);
+  const [lineRange, setLineRange] = useState({ start: 0, end: 0 });
+  const [layoutTick, setLayoutTick] = useState(0);
 
   const engine = useRef(EMPTY_ENGINE());
   const finishRef = useRef(null);
   const typingBox = useRef(null);
+  const stageAreaRef = useRef(null);
+  const linePeekRef = useRef(null);
   const pendingStart = useRef(false);
 
   const level = user?.level || 1;
@@ -166,6 +172,44 @@ export default function Trainer() {
   useEffect(() => {
     sound.setEnabled(soundOn);
   }, [soundOn]);
+
+  // Следим, виден ли основной текст: если пользователь ушёл к клавиатуре,
+  // показываем закреплённую строку сверху.
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      const node = stageAreaRef.current;
+      if (!node) return;
+      const rect = node.getBoundingClientRect();
+      // Нижняя граница зоны с закреплённой строкой: текст должен полностью уйти наверх.
+      setTypingAreaInView(rect.bottom > 140 && rect.top < window.innerHeight);
+    };
+    const schedule = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        update();
+      });
+    };
+    update();
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+    };
+  }, [showKeyboard]);
+
+  useEffect(() => {
+    const onResize = () => setLayoutTick((value) => value + 1);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    setLayoutTick((value) => value + 1);
+  }, [showKeyboard, exercise]);
 
   // --- таймер -----------------------------------------------------------
   useEffect(() => {
@@ -494,6 +538,65 @@ export default function Trainer() {
   const bonus = current.bonus;
   const bonusLeft = bonus ? Math.max(0, Math.ceil((bonus.until - performance.now()) / 1000)) : 0;
 
+  const showLinePeek =
+    Boolean(exercise) && !typingAreaInView && (status === 'running' || status === 'paused');
+  const lineStart = lineRange.start;
+  const lineEnd = lineRange.end;
+  const lineDisplayEnd =
+    exercise && exercise.text[lineEnd] === '\n' ? lineEnd - 1 : lineEnd;
+  const lineText = exercise
+    ? exercise.text.slice(lineStart, Math.max(lineStart, lineDisplayEnd + 1))
+    : '';
+  const expectingNewline =
+    Boolean(exercise) && exercise.text[typedCount] === '\n' && typedCount >= lineStart;
+
+  // Определяем визуальную строку по реальной раскладке текста:
+  // это работает и для переносов слов, и для Enter в коде.
+  useEffect(() => {
+    if (!exercise) return undefined;
+    const frame = requestAnimationFrame(() => {
+      const box = typingBox.current;
+      if (!box) return;
+      const nodes = box.querySelectorAll('.typing__char');
+      const total = exercise.text.length;
+      if (!total || nodes.length === 0) return;
+      const cursorIndex = Math.min(engine.current.typed.length, total - 1);
+      const cursorNode = nodes[cursorIndex];
+      if (!cursorNode) return;
+      const top = Math.round(cursorNode.offsetTop);
+      let start = cursorIndex;
+      let end = cursorIndex;
+      while (start > 0 && nodes[start - 1] && Math.round(nodes[start - 1].offsetTop) === top) {
+        start -= 1;
+      }
+      while (
+        end < total - 1 &&
+        nodes[end + 1] &&
+        Math.round(nodes[end + 1].offsetTop) === top
+      ) {
+        end += 1;
+      }
+      setLineRange((previous) =>
+        previous.start === start && previous.end === end ? previous : { start, end },
+      );
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [view, exercise, typedCount, layoutTick]);
+
+  // Держим курсор закреплённой строки в зоне видимости.
+  useEffect(() => {
+    if (!showLinePeek) return;
+    const container = linePeekRef.current;
+    if (!container) return;
+    const active = container.querySelector('.typing__char.is-current');
+    if (!active) return;
+    const box = container.getBoundingClientRect();
+    const rect = active.getBoundingClientRect();
+    if (rect.left < box.left + 24 || rect.right > box.right - 24) {
+      container.scrollLeft += rect.left - box.left - box.width / 2;
+    }
+  }, [typedCount, lineStart, lineEnd, showLinePeek]);
+
   const modes = catalog?.modes || [];
   const difficulties = catalog?.difficulties || [];
   const codeLanguages = catalog?.code_languages || [];
@@ -761,7 +864,7 @@ export default function Trainer() {
             )}
           </div>
 
-          <div className="stage__text-area">
+          <div className="stage__text-area" ref={stageAreaRef}>
             {loadingText ? (
               <div className="typing typing--loading">
                 <Skeleton height={26} width="92%" />
@@ -870,6 +973,44 @@ export default function Trainer() {
           <Hand size={16} /> Показать подсказку пальцев
         </button>
       )}
+
+      {showLinePeek
+        ? createPortal(
+            <div className="line-peek" aria-hidden="true">
+              <span className="line-peek__label">
+                <KeyboardIcon size={13} />
+                <span>Текущая строка</span>
+              </span>
+              <span className="line-peek__divider" />
+              <div className="line-peek__text" ref={linePeekRef} key={`${lineStart}-${lineEnd}`}>
+                {Array.from(lineText).map((char, offset) => {
+                  const absolute = lineStart + offset;
+                  return (
+                    <span
+                      key={absolute}
+                      className={charClass(
+                        current.typed[absolute],
+                        absolute === typedCount,
+                        absolute < typedCount,
+                      )}
+                    >
+                      {char}
+                    </span>
+                  );
+                })}
+                {expectingNewline ? (
+                  <span className="typing__char is-current">⏎</span>
+                ) : typedCount > lineDisplayEnd ? (
+                  <span className="typing__char is-current">&nbsp;</span>
+                ) : null}
+              </div>
+              <span className="line-peek__meta">
+                {formatNumber(liveCpm)} <small>зн/мин</small>
+              </span>
+            </div>,
+            document.body,
+          )
+        : null}
 
       <ResultsModal
         result={result}
