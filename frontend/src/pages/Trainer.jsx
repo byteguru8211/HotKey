@@ -29,7 +29,7 @@ import { Badge, Button, Modal, ProgressBar, Segmented, Skeleton } from '../compo
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { sound } from '../lib/audio';
-import { formatDuration, formatNumber, formatTime } from '../lib/format';
+import { formatDuration, formatNumber, formatTime, plural } from '../lib/format';
 import { useToast } from '../lib/toast';
 
 const MODE_ICONS = { words: KeyboardIcon, sentences: Quote, symbols: Hash, code: Code2 };
@@ -359,6 +359,41 @@ export default function Trainer() {
     setView((value) => value + 1);
   }, []);
 
+  /** Tab в режиме кода: разом добивает отступ текущей строки. */
+  const typeIndentation = useCallback(() => {
+    const current = engine.current;
+    if (!exercise || current.finished) return;
+    const text = exercise.text;
+    const index = current.typed.length;
+    if (index >= text.length) return;
+
+    const lineStart = text.lastIndexOf('\n', index - 1) + 1;
+    for (let position = lineStart; position < index; position += 1) {
+      if (text[position] !== ' ') return;
+    }
+    if (text[index] !== ' ') return;
+
+    let indentEnd = index;
+    while (indentEnd < text.length && text[indentEnd] === ' ') indentEnd += 1;
+    const spaces = indentEnd - index;
+    if (spaces <= 0) return;
+
+    for (let step = 0; step < spaces; step += 1) {
+      current.typed.push({ char: ' ', typed: ' ', correct: true });
+      current.correct += 1;
+      current.combo += 1;
+      current.maxCombo = Math.max(current.maxCombo, current.combo);
+      if (current.correct >= current.nextBonusAt) triggerBonus();
+    }
+    sound.indent();
+
+    if (current.typed.length >= text.length) {
+      finishRef.current?.('complete');
+      return;
+    }
+    setView((value) => value + 1);
+  }, [exercise, triggerBonus]);
+
   // --- ввод с клавиатуры ------------------------------------------------
   useEffect(() => {
     if (status !== 'running') return undefined;
@@ -370,6 +405,15 @@ export default function Trainer() {
         return;
       }
       if (event.key === 'Tab') {
+        event.preventDefault();
+        if (settings.mode === 'code') {
+          typeIndentation();
+        } else {
+          restartRun();
+        }
+        return;
+      }
+      if (event.key === 'F2') {
         event.preventDefault();
         restartRun();
         return;
@@ -391,7 +435,7 @@ export default function Trainer() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [status, pauseRun, restartRun, backspace, typeChar]);
+  }, [status, pauseRun, restartRun, backspace, typeChar, typeIndentation, settings.mode]);
 
   useEffect(() => {
     if (status !== 'idle' || !exercise) return undefined;
@@ -682,6 +726,41 @@ export default function Trainer() {
             </div>
           </div>
 
+          <div className={`bonus-strip ${bonus && status === 'running' ? 'is-active' : ''}`}>
+            {bonus && status === 'running' ? (
+              <>
+                <span className="bonus-strip__icon">
+                  <bonus.icon size={15} />
+                </span>
+                <strong>{bonus.label}</strong>
+                <span className="bonus-strip__note">{bonus.note}</span>
+                <span className="bonus-strip__timer">{bonusLeft} с</span>
+              </>
+            ) : (
+              <>
+                <span className="bonus-strip__icon">
+                  <Zap size={14} />
+                </span>
+                <span className="bonus-strip__text">
+                  {status === 'running' ? (
+                    <>
+                      До бонуса:{' '}
+                      <strong>{Math.max(0, current.nextBonusAt - current.correct)}</strong>{' '}
+                      {plural(Math.max(0, current.nextBonusAt - current.correct), [
+                        'точное нажатие',
+                        'точных нажатия',
+                        'точных нажатий',
+                      ])}
+                    </>
+                  ) : (
+                    'Бонусы включаются за серию точных нажатий'
+                  )}
+                </span>
+                <span className="bonus-strip__combo">Комбо ×{comboMultiplier}</span>
+              </>
+            )}
+          </div>
+
           <div className="stage__text-area">
             {loadingText ? (
               <div className="typing typing--loading">
@@ -734,7 +813,9 @@ export default function Trainer() {
                 <Button size="lg" onClick={startRun} icon={Play}>
                   Начать забег
                 </Button>
-                <span className="overlay__hint">или нажмите Enter</span>
+                <span className="overlay__hint">
+                  {settings.mode === 'code' ? 'Enter — старт · Tab — отступ' : 'или нажмите Enter'}
+                </span>
               </div>
             ) : null}
 
@@ -750,24 +831,21 @@ export default function Trainer() {
                 </Button>
               </div>
             ) : null}
-
-            {bonus && status === 'running' ? (
-              <div className="bonus-toast">
-                <span className="bonus-toast__icon">
-                  <bonus.icon size={16} />
-                </span>
-                <div>
-                  <strong>{bonus.label}</strong>
-                  <span>{bonus.note} · {bonusLeft} с</span>
-                </div>
-              </div>
-            ) : null}
           </div>
 
           <div className="stage__bottom">
             <span className="stage__hint">
               <kbd>Esc</kbd> пауза
-              <kbd>Tab</kbd> заново
+              {settings.mode === 'code' ? (
+                <>
+                  <kbd>Tab</kbd> отступ
+                  <kbd>F2</kbd> заново
+                </>
+              ) : (
+                <>
+                  <kbd>Tab</kbd> заново
+                </>
+              )}
               <kbd>Backspace</kbd> исправить
             </span>
             <div className="stage__streak">
@@ -783,7 +861,7 @@ export default function Trainer() {
           <Keyboard layout={keyboardLayout} nextChar={status === 'running' ? nextChar : exercise?.text[0] || ''} />
           {settings.mode === 'code' ? (
             <p className="trainer__keyboard-note">
-              <Code2 size={14} /> Фрагменты кода печатаются в английской раскладке.
+              <Code2 size={14} /> Код печатается в английской раскладке. Tab автоматически ставит отступ строки.
             </p>
           ) : null}
         </div>

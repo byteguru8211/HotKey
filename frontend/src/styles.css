@@ -2429,41 +2429,66 @@ svg {
   margin-top: 2px;
 }
 
-.bonus-toast {
-  position: absolute;
-  top: 12px;
-  right: 20px;
-  z-index: 5;
+.bonus-strip {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 13px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 181, 71, 0.35);
-  background: rgba(45, 32, 14, 0.94);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), 0 0 30px rgba(255, 181, 71, 0.12);
-  animation: slideIn 0.25s ease both;
-}
-.bonus-toast__icon {
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border-radius: 9px;
-  color: var(--amber);
-  background: rgba(255, 181, 71, 0.15);
-}
-.bonus-toast div {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.35;
-}
-.bonus-toast strong {
-  font-size: 12px;
-}
-.bonus-toast span {
+  gap: 9px;
+  height: 36px;
+  flex: none;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.014);
+  color: var(--muted-2);
   font-size: 10.5px;
-  color: var(--muted);
+  overflow: hidden;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+.bonus-strip.is-active {
+  background: linear-gradient(90deg, rgba(255, 181, 71, 0.14), rgba(255, 122, 61, 0.04) 62%, transparent);
+  color: #ffdca4;
+}
+.bonus-strip__icon {
+  display: flex;
+  align-items: center;
+  color: var(--amber);
+  flex: none;
+}
+.bonus-strip.is-active .bonus-strip__icon {
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.bonus-strip strong {
+  font-size: 11px;
+  color: var(--amber-soft);
+  white-space: nowrap;
+}
+.bonus-strip__text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bonus-strip__text strong {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+.bonus-strip__note {
+  color: rgba(255, 220, 164, 0.72);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bonus-strip__timer {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--amber);
+  flex: none;
+}
+.bonus-strip__combo {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted-2);
+  flex: none;
 }
 
 .stage__bottom {
@@ -4915,6 +4940,16 @@ svg {
     align-items: flex-start;
     gap: 6px;
     padding: 10px 14px;
+  }
+  .bonus-strip {
+    padding: 0 14px;
+    gap: 7px;
+  }
+  .bonus-strip__note {
+    display: none;
+  }
+  .bonus-strip__text {
+    font-size: 9.5px;
   }
   .stage__hint {
     font-size: 9.5px;

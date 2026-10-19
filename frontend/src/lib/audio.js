@@ -56,6 +56,11 @@ class SoundEngine {
     this.tone(base * 1.5, 0.06, { type: 'sine', gain: 0.3, delay: 0.04 });
   }
 
+  indent() {
+    this.tone(660, 0.04, { type: 'triangle', gain: 0.35 });
+    this.tone(990, 0.05, { type: 'triangle', gain: 0.3, delay: 0.035 });
+  }
+
   bonus() {
     [523.25, 659.25, 783.99, 1046.5].forEach((frequency, index) => {
       this.tone(frequency, 0.12, { type: 'triangle', gain: 0.55, delay: index * 0.06 });
