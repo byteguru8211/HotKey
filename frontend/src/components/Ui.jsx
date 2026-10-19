@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Loader2, Sparkles } from 'lucide-react';
 
 export function Button({
@@ -107,7 +108,7 @@ export function Modal({ open, onClose, title, subtitle, children, size = 'md', f
   }, [open, onClose]);
 
   if (!open) return null;
-  return (
+  return createPortal(
     <div className="modal" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose?.()}>
       <div className={`modal__panel modal__panel--${size}`} role="dialog" aria-modal="true" aria-label={title}>
         <div className="modal__glow" aria-hidden="true" />
@@ -123,7 +124,8 @@ export function Modal({ open, onClose, title, subtitle, children, size = 'md', f
         <div className="modal__body">{children}</div>
         {footer ? <div className="modal__footer">{footer}</div> : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

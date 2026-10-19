@@ -810,6 +810,7 @@ svg {
   box-shadow: var(--shadow);
   animation: pop 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
   overflow: hidden;
+  overscroll-behavior: contain;
 }
 .modal__panel--lg {
   max-width: 720px;
@@ -862,6 +863,8 @@ svg {
 .modal__body {
   padding: 20px 24px 24px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .modal__footer {
   padding: 16px 24px;
