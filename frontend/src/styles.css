@@ -2735,6 +2735,17 @@ svg {
   color: #5c6a80;
   line-height: 1;
 }
+.key__home {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  width: 11px;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.55;
+  transform: translateX(-50%);
+}
 .key.is-finger {
   border-color: color-mix(in srgb, var(--finger-color) 36%, transparent);
   background: color-mix(in srgb, var(--finger-color) 7%, transparent);
@@ -2781,6 +2792,102 @@ svg {
 .key--space.is-next {
   background: linear-gradient(160deg, var(--amber-soft), var(--amber));
 }
+
+/* ---------- hand position guide ---------- */
+.hand-guide {
+  width: min(620px, 100%);
+  margin: 13px auto 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+}
+.hand-guide__drawing {
+  display: block;
+  width: min(520px, 88%);
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+}
+.hand-guide__home-line {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+}
+.hand-guide__palm,
+.hand-guide__finger-shape {
+  fill: url(#hand-surface);
+  stroke: #344156;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.hand-guide__palm-light,
+.hand-guide__palm-crease,
+.hand-guide__joint {
+  fill: none;
+  stroke: #536178;
+  stroke-width: 1;
+  stroke-linecap: round;
+  opacity: 0.42;
+}
+.hand-guide__palm-light {
+  stroke: #6a7890;
+  opacity: 0.22;
+}
+.hand-guide__finger,
+.hand-guide__finger > * {
+  transition: fill 0.16s ease, stroke 0.16s ease, opacity 0.16s ease;
+}
+.hand-guide__finger {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  transition: transform 0.16s ease, filter 0.16s ease;
+}
+.hand-guide__nail {
+  fill: #222f41;
+  stroke: #617087;
+  stroke-width: 1;
+  opacity: 0.76;
+}
+.hand-guide__fingertip {
+  fill: #8795aa;
+  opacity: 0.34;
+}
+.hand-guide__finger.is-active {
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--finger-color) 72%, transparent));
+  transform: translateY(-5px);
+}
+.hand-guide__finger.is-active .hand-guide__finger-shape {
+  fill: color-mix(in srgb, var(--finger-color) 23%, #151e2c);
+  stroke: var(--finger-color);
+  stroke-width: 2;
+}
+.hand-guide__finger.is-active .hand-guide__joint {
+  stroke: color-mix(in srgb, var(--finger-color) 70%, #fff);
+  opacity: 0.58;
+}
+.hand-guide__finger.is-active .hand-guide__nail {
+  fill: color-mix(in srgb, var(--finger-color) 35%, #202b3b);
+  stroke: color-mix(in srgb, var(--finger-color) 75%, #fff);
+}
+.hand-guide__finger.is-active .hand-guide__fingertip {
+  fill: var(--finger-color);
+  opacity: 1;
+}
+.hand-guide__side-label {
+  fill: var(--muted-2);
+  font-family: var(--font-body);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+.hand-guide__caption {
+  display: block;
+  min-height: 16px;
+  margin-top: 2px;
+  color: var(--muted-2);
+  font-size: 9.5px;
+}
 .keyboard__legend {
   display: flex;
   align-items: center;
@@ -2811,6 +2918,13 @@ svg {
 }
 .keyboard--compact .keyboard__legend {
   display: none;
+}
+.keyboard--compact .hand-guide {
+  margin-top: 9px;
+  padding-top: 7px;
+}
+.keyboard--compact .hand-guide__drawing {
+  width: min(440px, 82%);
 }
 
 /* ==========================================================================

@@ -99,6 +99,26 @@ export function resolveKey(layout, char) {
   return INDEXES[layout === 'ru' ? 'ru' : 'en'].get(char) || null;
 }
 
+/**
+ * Полное действие для следующего символа. Для Shift выбирается мизинец
+ * противоположной руки, чтобы основная рука оставалась над своей зоной.
+ */
+export function resolveTypingAction(layout, char) {
+  const target = resolveKey(layout, char);
+  if (!target) return null;
+
+  const mainSide = FINGERS[target.finger]?.side;
+  const shiftSide = target.shift ? (mainSide === 'left' ? 'right' : 'left') : null;
+  const shiftFinger = shiftSide === 'left' ? 'lp' : shiftSide === 'right' ? 'rp' : null;
+
+  return {
+    ...target,
+    shiftSide,
+    shiftFinger,
+    activeFingers: [target.finger, shiftFinger].filter(Boolean),
+  };
+}
+
 export function fingerInfo(fingerId) {
   const finger = FINGERS[fingerId];
   if (!finger) return null;
@@ -108,9 +128,7 @@ export function fingerInfo(fingerId) {
 }
 
 export function describeNextKey(layout, char) {
-  if (char === '\n') return { key: 'Enter', finger: fingerInfo('rp'), shift: false };
-  if (char === ' ') return { key: 'Space', finger: fingerInfo('thumb'), shift: false };
-  const target = resolveKey(layout, char);
+  const target = resolveTypingAction(layout, char);
   if (!target) return null;
   return { ...target, finger: fingerInfo(target.finger) };
 }

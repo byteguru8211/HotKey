@@ -1,4 +1,5 @@
-import { FINGER_META, LAYOUTS, fingerInfo, resolveKey } from '../lib/keyboard';
+import HandGuide from './HandGuide';
+import { FINGER_META, LAYOUTS, fingerInfo, resolveTypingAction } from '../lib/keyboard';
 
 const SYMBOL_SHIFT = /[^\p{L}\p{N}]/u;
 
@@ -16,9 +17,14 @@ const FINGER_TYPE = {
 
 export default function Keyboard({ layout = 'ru', nextChar = '', compact = false }) {
   const layoutData = LAYOUTS[layout] || LAYOUTS.ru;
-  const target = resolveKey(layout, nextChar);
+  const target = resolveTypingAction(layout, nextChar);
   const activeFinger = target?.finger || null;
   const finger = activeFinger ? fingerInfo(activeFinger) : null;
+  const shiftFinger = target?.shiftFinger ? fingerInfo(target.shiftFinger) : null;
+  const shiftLabel = target?.shiftSide === 'left' ? 'левый Shift' : 'правый Shift';
+  const actionDescription = target?.shift
+    ? `${shiftLabel} — ${shiftFinger?.label.toLowerCase()} ${shiftFinger?.side}; ${finger?.label.toLowerCase()} ${finger?.side}`
+    : finger ? `${finger.label} ${finger.side}` : '';
 
   return (
     <div className={`keyboard ${compact ? 'keyboard--compact' : ''}`.trim()}>
@@ -27,12 +33,12 @@ export default function Keyboard({ layout = 'ru', nextChar = '', compact = false
           <>
             <span className="keyboard__hint-label">Следующая клавиша</span>
             <span className="keyboard__hint-key">
-              {target.shift ? <span className="keyboard__shift">Shift</span> : null}
+              {target.shift ? <span className="keyboard__shift">{shiftLabel}</span> : null}
               {target.key === 'Enter' ? 'Enter' : target.key === 'Space' ? 'Пробел' : nextChar}
             </span>
             <span className="keyboard__hint-finger" style={{ color: finger?.color }}>
               <span className="dot" style={{ background: finger?.color }} />
-              {finger ? `${finger.label} ${finger.side}` : ''}
+              {actionDescription}
             </span>
           </>
         ) : (
@@ -50,6 +56,7 @@ export default function Keyboard({ layout = 'ru', nextChar = '', compact = false
               const isNext = Boolean(target && target.key.toLowerCase() === key.toLowerCase());
               const shiftChar = row.shift[index];
               const showShift = SYMBOL_SHIFT.test(shiftChar) && shiftChar !== key;
+              const isHomeKey = layout === 'ru' ? key === 'а' || key === 'о' : key === 'f' || key === 'j';
               return (
                 <span
                   key={`${key}-${index}`}
@@ -65,6 +72,7 @@ export default function Keyboard({ layout = 'ru', nextChar = '', compact = false
                 >
                   {showShift ? <span className="key__shift">{shiftChar}</span> : null}
                   <span className="key__label">{key === '\\' ? '\\' : key}</span>
+                  {isHomeKey ? <span className="key__home" aria-hidden="true" /> : null}
                 </span>
               );
             })}
@@ -72,7 +80,7 @@ export default function Keyboard({ layout = 'ru', nextChar = '', compact = false
         ))}
 
         <div className="keyboard__row keyboard__row--bottom">
-          <span className={`key key--mod ${target?.shift ? 'is-next' : ''}`}>
+          <span className={`key key--mod ${target?.shiftSide === 'left' ? 'is-next' : ''}`}>
             <span className="key__label">Shift</span>
           </span>
           <span
@@ -84,8 +92,13 @@ export default function Keyboard({ layout = 'ru', nextChar = '', compact = false
           <span className={`key key--mod ${target?.key === 'Enter' ? 'is-next' : ''}`}>
             <span className="key__label">Enter</span>
           </span>
+          <span className={`key key--mod ${target?.shiftSide === 'right' ? 'is-next' : ''}`}>
+            <span className="key__label">Shift</span>
+          </span>
         </div>
       </div>
+
+      <HandGuide activeFingers={target?.activeFingers || []} compact={compact} />
 
       {!compact ? (
         <div className="keyboard__legend">
